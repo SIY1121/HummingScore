@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
 import android.view.View
+import android.widget.LinearLayout
 import java.util.*
 
 class ScoreView : View {
@@ -26,6 +27,7 @@ class ScoreView : View {
     init {
         paint.color = Color.RED
         paint.style = Paint.Style.FILL
+        layoutParams = LinearLayout.LayoutParams(context.resources.displayMetrics.widthPixels, LinearLayout.LayoutParams.MATCH_PARENT)
     }
 
     var notes = MutableList<Int>(0) { _ -> 0 }
@@ -37,8 +39,11 @@ class ScoreView : View {
 
     override fun onDraw(canvas: Canvas) {
         canvas.drawColor(Color.TRANSPARENT)
-//        if((notes.size * noteWidth).toDp() > context.resources.displayMetrics.widthPixels)
-
+        if (notes.size * noteWidth > layoutParams.width)
+            layoutParams = LinearLayout.LayoutParams(layoutParams).apply {
+                width += context.resources.displayMetrics.widthPixels
+                println(width)
+            }
         notes.forEachIndexed { index, _note ->
             val note = _note - 36
             canvas.drawRect(

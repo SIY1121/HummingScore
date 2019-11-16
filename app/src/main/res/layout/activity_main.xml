@@ -30,15 +30,38 @@
         android:id="@+id/textView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
         android:text="TextView"
-        app:layout_constraintTop_toBottomOf="@+id/progress_bar"
-        tools:layout_editor_absoluteX="175dp" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/progress_bar" />
 
-    <space.siy.hummingscore.ScoreView
+    <HorizontalScrollView
         android:layout_width="match_parent"
-        android:layout_height="300dp"
-        android:id="@+id/scoreView"
-        app:layout_constraintTop_toBottomOf="@+id/textView" />
+        android:layout_height="0dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal">
+
+            <space.siy.hummingscore.ScoreView
+                android:id="@+id/scoreView"
+                android:layout_width="1000dp"
+                android:layout_height="match_parent"
+                android:layout_marginBottom="8dp" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

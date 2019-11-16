@@ -3,6 +3,8 @@ package space.siy.hummingscore
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import android.os.Handler
+import android.os.HandlerThread
 import io.reactivex.Observable
 import io.reactivex.Scheduler
 import io.reactivex.schedulers.Schedulers
@@ -14,6 +16,7 @@ class AudioRecorder(val sampleRate: Int, val oneFrameDataCount: Int) {
     private val bufferSizeInByte =
         AudioRecord.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
     val audioArray = ShortArray(oneFrameDataCount)
+    val thread = HandlerThread("AudioRecordThread")
 
     private val audioRecord = AudioRecord(
         MediaRecorder.AudioSource.MIC,
@@ -26,6 +29,7 @@ class AudioRecorder(val sampleRate: Int, val oneFrameDataCount: Int) {
     fun start() = Observable.create<ShortArray> {
         audioRecord.positionNotificationPeriod = oneFrameDataCount
         audioRecord.notificationMarkerPosition = 4000
+        thread.start()
         audioRecord.setRecordPositionUpdateListener(object : AudioRecord.OnRecordPositionUpdateListener {
             override fun onPeriodicNotification(recorder: AudioRecord) {
                 recorder.read(audioArray, 0, oneFrameDataCount)
@@ -33,12 +37,13 @@ class AudioRecorder(val sampleRate: Int, val oneFrameDataCount: Int) {
             }
 
             override fun onMarkerReached(recorder: AudioRecord) {}
-        })
+        }, Handler(thread.looper))
         audioRecord.startRecording()
         audioRecord.read(audioArray, 0, oneFrameDataCount)
     }
 
     fun stop() {
         audioRecord.stop()
+
     }
 }
