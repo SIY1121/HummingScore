@@ -35,4 +35,10 @@
         app:layout_constraintTop_toBottomOf="@+id/progress_bar"
         tools:layout_editor_absoluteX="175dp" />
 
+    <space.siy.hummingscore.ScoreView
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:id="@+id/scoreView"
+        app:layout_constraintTop_toBottomOf="@+id/textView" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

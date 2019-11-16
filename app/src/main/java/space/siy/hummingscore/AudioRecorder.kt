@@ -9,9 +9,7 @@ import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlin.math.abs
 
-class AudioRecorder(val sampleRate: Int) {
-    private val frameRate = 10
-    val oneFrameDataCount = sampleRate / frameRate
+class AudioRecorder(val sampleRate: Int, val oneFrameDataCount: Int) {
     val oneFrameSizeInByte = oneFrameDataCount * 2
     private val bufferSizeInByte =
         AudioRecord.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
@@ -33,11 +31,12 @@ class AudioRecorder(val sampleRate: Int) {
                 recorder.read(audioArray, 0, oneFrameDataCount)
                 it.onNext(audioArray)
             }
+
             override fun onMarkerReached(recorder: AudioRecord) {}
         })
         audioRecord.startRecording()
         audioRecord.read(audioArray, 0, oneFrameDataCount)
-    }.observeOn(Schedulers.computation())
+    }
 
     fun stop() {
         audioRecord.stop()

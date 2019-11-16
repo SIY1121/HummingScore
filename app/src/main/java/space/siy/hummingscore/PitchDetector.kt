@@ -1,6 +1,7 @@
 package space.siy.hummingscore
 
 import be.tarsos.dsp.pitch.McLeodPitchMethod
+import kotlin.math.abs
 import kotlin.math.pow
 
 object PitchDetector {
@@ -11,32 +12,21 @@ object PitchDetector {
 
     fun analyze(arr: ShortArray) = McLeodPitchMethod(44100f, arr.size).run {
         getPitch(arr.map { it / Short.MAX_VALUE.toFloat() }.toFloatArray()).let { res ->
-            (0..87).forEach {i ->
-                if (levels[i] <= res.pitch && res.pitch  < levels[i + 1])
-                    return@let i
+            var dis = abs(res.pitch - levels[0])
+            (1..87).forEach { i ->
+                if (dis < abs(res.pitch - levels[i]))
+                    return@let i - 1
+                dis = abs(res.pitch - levels[i])
             }
             return@let 0
         }
     }
 }
 
+val degrees = arrayOf("A", "B♭", "B", "C", "C#", "D", "E♭", "E", "F", "F#", "G", "G#")
+
 fun Int.toNoteName(): String {
-    val a = this % 12
-    val b = this / 12
-    val name = when (a) {
-        0 -> "A"
-        1 -> "B♭"
-        2 -> "B"
-        3 -> "C"
-        4 -> "C#"
-        5 -> "D"
-        6 -> "E♭"
-        7 -> "E"
-        8 -> "F"
-        9 -> "F#"
-        10 -> "G"
-        11 -> "G#"
-        else -> ""
-    }
-    return name + b
+    val degree = this % 12
+    val octaveNumber = (this - 3) / 12
+    return degrees[degree] + octaveNumber
 }

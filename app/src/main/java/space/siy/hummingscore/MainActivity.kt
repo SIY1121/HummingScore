@@ -25,9 +25,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun record() {
         File(getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.absolutePath + "/humming").mkdir()
-        HummingRecorder(File(getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.absolutePath + "/humming/hoge.wav")).start().observeOn(AndroidSchedulers.mainThread()).subscribe {
+        val file = File(getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.absolutePath + "/humming/hoge.wav")
+        HummingRecorder(file).start().observeOn(AndroidSchedulers.mainThread()).subscribe {
             progress_bar.progress = it
             textView.text = it.toNoteName()
+            scoreView.addAndDraw(it)
         }
     }
 }
