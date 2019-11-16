@@ -125,7 +125,7 @@ class ScoreView : FrameLayout {
         val previewSamples = MutableList<Byte>(0) { _ -> 0 }
 
         fun addAndDraw(note: HummingRecorder.Data) {
-            notes.add(note.note)
+            notes.add(note.tone)
             previewSamples.addAll(note.samples)
             invalidate()
         }
