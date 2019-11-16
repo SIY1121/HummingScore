@@ -16,7 +16,7 @@ class MainActivity : AppCompatActivity() {
     val player = MediaPlayer()
     var recording = false
 
-    val hummingOption = HummingOption(120, 16)
+    val hummingOption = HummingOption(120, 16, 1)
 
     val playerTimer = Observable.interval(20, TimeUnit.MILLISECONDS, Schedulers.computation())
     lateinit var notesStream: Observable<Int>
@@ -44,7 +44,6 @@ class MainActivity : AppCompatActivity() {
         notesStream = playerTimer
             .filter { player.isPlaying }
             .observeOn(AndroidSchedulers.mainThread()).map {
-                scoreView.playerPosition = player.currentPosition
                 val index =
                     (player.currentPosition / 1000f * (hummingOption.bpm / 60f) * (hummingOption.noteResolution / 4)).toInt()
                 recorder.tones[index]
@@ -55,6 +54,14 @@ class MainActivity : AppCompatActivity() {
             midiDevice = MidiDevice(this, MidiDevice.getDeviceList(this)[0])
             midiPlayer = MidiPlayer(midiDevice!!, notesStream)
         }
+
+        val a = Observable.fromArray(1, 2, 3, 4, 5, 6, 7, 8, 9).buffer(3).map {
+            println("map$it")
+            it
+        }.doOnNext { println("doOnNext$it") }.publish().refCount()
+        a.subscribe { println("subA$it") }
+        a.subscribe { println("subB$it") }
+        println("hi")
     }
 
     lateinit var recorder: HummingRecorder
@@ -68,10 +75,13 @@ class MainActivity : AppCompatActivity() {
         File(getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.absolutePath + "/humming").mkdir()
         val file = File(getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.absolutePath + "/humming/hoge.wav")
         recorder = HummingRecorder(file, hummingOption)
-        recorder.start().observeOn(AndroidSchedulers.mainThread()).subscribe {
-            scoreView.addAndDraw(it)
-            textView.text = it.tone.toNoteName()
+        recorder.start()
+        scoreView.notesObservable = recorder.notesObservable
+        recorder.notesObservable.observeOn(AndroidSchedulers.mainThread()).subscribe {
+            textView.text = it.toNoteName()
         }
+        scoreView.previewSamplesObservable = recorder.previewSampleObservable
+        scoreView.playerPositionObservable = playerTimer.filter { player.isPlaying }.map { player.currentPosition }
         recording = true
         button_record.setImageResource(R.drawable.ic_stop)
     }

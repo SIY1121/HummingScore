@@ -7,7 +7,9 @@ import java.io.*
 class WavWriter(private val sampleRate: Int, private val file: File) {
     private val buf = ByteArrayOutputStream()
     fun writeSample(arr: ShortArray) {
-        buf.write(arr.toByteArray())
+        synchronized(buf){
+            buf.write(arr.toByteArray())
+        }
     }
 
     fun flush() {

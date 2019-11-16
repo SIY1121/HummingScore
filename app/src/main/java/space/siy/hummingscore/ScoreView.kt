@@ -8,6 +8,7 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
+import io.reactivex.Observable
 
 class ScoreView : FrameLayout {
     constructor(context: Context) : super(context)
@@ -29,6 +30,24 @@ class ScoreView : FrameLayout {
         }
         get() = innerView.hummingOption
 
+    var notesObservable: Observable<Int>?
+        set(value) {
+            innerView.notesObservable = value
+        }
+        get() = innerView.notesObservable
+
+    var previewSamplesObservable: Observable<Byte>?
+        set(value) {
+            innerView.previewSampleObservable = value
+        }
+        get() = innerView.previewSampleObservable
+
+    var playerPositionObservable: Observable<Int>?
+        set(value) {
+            innerView.playerPositionObservable = value
+        }
+        get() = innerView.playerPositionObservable
+
     init {
         inflate(context, R.layout.view_score, this)
         innerView = findViewById(R.id.score_inner)
@@ -47,16 +66,6 @@ class ScoreView : FrameLayout {
         innerView.scrollTo = { left ->
             scrollView.smoothScrollTo(left, 0)
         }
-    }
-
-    var playerPosition: Int
-        set(value) {
-            innerView.playerPosition = value
-        }
-        get() = innerView.playerPosition
-
-    fun addAndDraw(data: HummingRecorder.Data) {
-        innerView.addAndDraw(data)
     }
 
     class InnerView : View {
@@ -114,6 +123,31 @@ class ScoreView : FrameLayout {
                 invalidate()
             }
 
+        var notesObservable: Observable<Int>? = null
+            set(value) {
+                value?.subscribe {
+                    notes.add(it)
+                    invalidate()
+                }
+                field = value
+            }
+
+        var previewSampleObservable: Observable<Byte>? = null
+            set(value) {
+                value?.subscribe {
+                    previewSamples.add(it)
+                    invalidate()
+                }
+                field = value
+            }
+
+        var playerPositionObservable: Observable<Int>? = null
+            set(value) {
+                value?.subscribe {
+                    playerPosition = it
+                }
+            }
+
         init {
             layoutParams = LinearLayout.LayoutParams(
                 context.resources.displayMetrics.widthPixels,
@@ -123,12 +157,6 @@ class ScoreView : FrameLayout {
 
         var notes = MutableList<Int>(0) { _ -> 0 }
         val previewSamples = MutableList<Byte>(0) { _ -> 0 }
-
-        fun addAndDraw(note: HummingRecorder.Data) {
-            notes.add(note.tone)
-            previewSamples.addAll(note.samples)
-            invalidate()
-        }
 
         override fun onDraw(canvas: Canvas) {
             canvas.drawColor(Color.TRANSPARENT)
@@ -151,9 +179,9 @@ class ScoreView : FrameLayout {
             previewSamples.forEachIndexed { index, byte ->
                 val level = byte / 256f * 25f
                 canvas.drawRect(
-                    index * (noteWidth / 2),
+                    index * (noteWidth / hummingOption.previewWaveSampleRate),
                     waveCenter.y - level * noteHeight,
-                    (index + 1) * (noteWidth / 2) - (noteWidth / 4),
+                    (index + 1) * (noteWidth / hummingOption.previewWaveSampleRate) - (noteWidth / hummingOption.previewWaveSampleRate / 2),
                     waveCenter.y + level * noteHeight,
                     wavePaint
                 )

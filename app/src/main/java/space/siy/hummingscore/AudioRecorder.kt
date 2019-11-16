@@ -26,10 +26,12 @@ class AudioRecorder(val sampleRate: Int, val oneFrameDataCount: Int) {
         bufferSizeInByte * 2
     )
 
+    init {
+        thread.start()
+    }
+
     fun start() = Observable.create<ShortArray> {
         audioRecord.positionNotificationPeriod = oneFrameDataCount
-        audioRecord.notificationMarkerPosition = 4000
-        thread.start()
         audioRecord.setRecordPositionUpdateListener(object : AudioRecord.OnRecordPositionUpdateListener {
             override fun onPeriodicNotification(recorder: AudioRecord) {
                 recorder.read(audioArray, 0, oneFrameDataCount)
@@ -40,7 +42,7 @@ class AudioRecorder(val sampleRate: Int, val oneFrameDataCount: Int) {
         }, Handler(thread.looper))
         audioRecord.startRecording()
         audioRecord.read(audioArray, 0, oneFrameDataCount)
-    }
+    }.publish().refCount()
 
     fun stop() {
         audioRecord.stop()
