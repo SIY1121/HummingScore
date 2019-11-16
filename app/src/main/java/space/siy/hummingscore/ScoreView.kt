@@ -2,12 +2,14 @@ package space.siy.hummingscore
 
 import android.content.Context
 import android.graphics.*
+import android.os.Handler
 import android.util.AttributeSet
 import android.view.View
+import android.widget.FrameLayout
+import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
-import java.util.*
 
-class ScoreView : View {
+class ScoreView : FrameLayout {
     constructor(context: Context) : super(context)
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs)
     constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int) : super(context, attrs, defStyleAttr)
@@ -18,44 +20,154 @@ class ScoreView : View {
         defStyleRes
     )
 
-    val paint = Paint()
-    val noteWidth = 30f
-    val noteHeight = 20f
+    val innerView: InnerView
+    val scrollView: HorizontalScrollView
 
-    val center = PointF(0f, 200f)
+    var hummingOption: HummingOption
+        set(value) {
+            innerView.hummingOption = value
+        }
+        get() = innerView.hummingOption
 
     init {
-        paint.color = Color.RED
-        paint.style = Paint.Style.FILL
-        layoutParams = LinearLayout.LayoutParams(context.resources.displayMetrics.widthPixels, LinearLayout.LayoutParams.MATCH_PARENT)
-    }
-
-    var notes = MutableList<Int>(0) { _ -> 0 }
-
-    fun addAndDraw(note: Int) {
-        notes.add(note)
-        invalidate()
-    }
-
-    override fun onDraw(canvas: Canvas) {
-        canvas.drawColor(Color.TRANSPARENT)
-        if (notes.size * noteWidth > layoutParams.width)
-            layoutParams = LinearLayout.LayoutParams(layoutParams).apply {
-                width += context.resources.displayMetrics.widthPixels
-                println(width)
+        inflate(context, R.layout.view_score, this)
+        innerView = findViewById(R.id.score_inner)
+        scrollView = findViewById(R.id.score_outer)
+        innerView.scrollToRight = {
+            Handler(context.mainLooper).post {
+                scrollView.fullScroll(HorizontalScrollView.FOCUS_RIGHT)
             }
-        notes.forEachIndexed { index, _note ->
-            val note = _note - 36
-            canvas.drawRect(
-                index * noteWidth,
-                center.y - note * noteHeight,
-                (index + 1) * noteWidth,
-                center.y - (note + 1) * noteHeight,
-                paint
-            )
+        }
+        innerView.scrollToNextPage = {
+            scrollView.pageScroll(HorizontalScrollView.FOCUS_RIGHT)
+        }
+        innerView.scrollToPrevPage = {
+            scrollView.pageScroll(HorizontalScrollView.FOCUS_LEFT)
+        }
+        innerView.scrollTo = { left ->
+            scrollView.smoothScrollTo(left, 0)
         }
     }
 
-    fun Float.toDp() = this / context.resources.displayMetrics.density
+    var playerPosition: Int
+        set(value) {
+            innerView.playerPosition = value
+        }
+        get() = innerView.playerPosition
 
+    fun addAndDraw(data: HummingRecorder.Data) {
+        innerView.addAndDraw(data)
+    }
+
+    class InnerView : View {
+        constructor(context: Context) : super(context)
+        constructor(context: Context, attrs: AttributeSet) : super(context, attrs)
+        constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int) : super(context, attrs, defStyleAttr)
+        constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int, defStyleRes: Int) : super(
+            context,
+            attrs,
+            defStyleAttr,
+            defStyleRes
+        )
+
+        val notePaint = Paint().apply {
+            color = context.resources.getColor(R.color.colorAccent)
+        }
+        val noteWidth = 30f
+        val noteHeight = 20f
+
+        val noteCenter = PointF(0f, 500f)
+
+
+        val wavePaint = Paint().apply {
+            color = context.resources.getColor(R.color.colorPrimary)
+        }
+        val waveCenter = PointF(0f, 1000f)
+
+        var scrollToRight: (() -> Unit)? = null
+        var scrollToNextPage: (() -> Unit)? = null
+        var scrollToPrevPage: (() -> Unit)? = null
+        var scrollTo: ((left: Int) -> Unit)? = null
+
+        var hummingOption = HummingOption()
+
+        val widthPerSec
+            get() = hummingOption.bpm / 60f * (hummingOption.noteResolution / 4) * noteWidth
+
+        val parentWidth: Int
+            get() {
+                val p = parent.parent
+                return if (p is View)
+                    p.width
+                else 0
+            }
+
+        var playerPosition = -1
+            set(value) {
+                val prevPage = ((field / 1000f * widthPerSec) / parentWidth).toInt()
+                val page = ((value / 1000f * widthPerSec) / parentWidth).toInt()
+
+                if (prevPage != page)
+                    scrollTo?.invoke(page * parentWidth)
+
+                field = value
+                invalidate()
+            }
+
+        init {
+            layoutParams = LinearLayout.LayoutParams(
+                context.resources.displayMetrics.widthPixels,
+                LinearLayout.LayoutParams.MATCH_PARENT
+            )
+        }
+
+        var notes = MutableList<Int>(0) { _ -> 0 }
+        val previewSamples = MutableList<Byte>(0) { _ -> 0 }
+
+        fun addAndDraw(note: HummingRecorder.Data) {
+            notes.add(note.note)
+            previewSamples.addAll(note.samples)
+            invalidate()
+        }
+
+        override fun onDraw(canvas: Canvas) {
+            canvas.drawColor(Color.TRANSPARENT)
+            if (notes.size * noteWidth > width) {
+                layoutParams = LinearLayout.LayoutParams(layoutParams).apply {
+                    width += parentWidth
+                }
+                scrollToRight?.invoke()
+            }
+            notes.forEachIndexed { index, _note ->
+                val note = _note - 36
+                canvas.drawRect(
+                    index * noteWidth,
+                    noteCenter.y - note * noteHeight,
+                    (index + 1) * noteWidth,
+                    noteCenter.y - (note + 1) * noteHeight,
+                    notePaint
+                )
+            }
+            previewSamples.forEachIndexed { index, byte ->
+                val level = byte / 256f * 25f
+                canvas.drawRect(
+                    index * (noteWidth / 2),
+                    waveCenter.y - level * noteHeight,
+                    (index + 1) * (noteWidth / 2) - (noteWidth / 4),
+                    waveCenter.y + level * noteHeight,
+                    wavePaint
+                )
+            }
+            canvas.drawRect(
+                playerPosition / 1000f * widthPerSec,
+                0f,
+                playerPosition / 1000f * widthPerSec + 10
+                , 1000f,
+                wavePaint
+            )
+        }
+
+        fun Float.toDp() = this / context.resources.displayMetrics.density
+
+    }
 }
