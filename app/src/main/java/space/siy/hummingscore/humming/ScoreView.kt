@@ -105,6 +105,7 @@ class ScoreView : FrameLayout {
         private val playerPositionPaint = Paint().apply {
             color = context.resources.getColor(R.color.colorPrimaryDark)
         }
+        private val keyboardPaint = Paint()
 
         var scrollToRight: (() -> Unit)? = null
         var scrollToNextPage: (() -> Unit)? = null
@@ -172,6 +173,9 @@ class ScoreView : FrameLayout {
         private var notes = MutableList<Int>(0) { _ -> 0 }
         private val previewSamples = MutableList<Byte>(0) { _ -> 0 }
 
+        private val keyboardColor =
+            arrayOf(false, true, false, true, false, false, true, false, true, false, true, false)
+
         /**  描画部分 */
         override fun onDraw(canvas: Canvas) {
             canvas.drawColor(Color.TRANSPARENT)
@@ -198,13 +202,26 @@ class ScoreView : FrameLayout {
 
             // 波形の描画
             previewSamples.forEachIndexed { index, byte ->
-                val level = byte / 256f * 25f
+                val level = byte / 256f * 15f
                 canvas.drawRect(
                     index * (noteWidth / hummingOption.previewWaveSampleRate),
                     waveCenter.y - level * noteHeight,
                     (index + 1) * (noteWidth / hummingOption.previewWaveSampleRate) - (noteWidth / hummingOption.previewWaveSampleRate / 2),
                     waveCenter.y + level * noteHeight,
                     wavePaint
+                )
+            }
+
+            // キーボード
+            (25..60).forEach { _i ->
+                keyboardPaint.color = if (keyboardColor[(_i - 3) % 12]) Color.parseColor("#444444") else Color.parseColor("#EEEEEE")
+                val i = _i - 36
+                canvas.drawRect(
+                    0f,
+                    noteCenter.y - i * noteHeight,
+                    100f,
+                    noteCenter.y - (i + 1) * noteHeight,
+                    keyboardPaint
                 )
             }
 

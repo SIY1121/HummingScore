@@ -47,51 +47,12 @@ class MainActivity : AppCompatActivity() {
 
         /** 再生ボタン */
         button_play.setOnClickListener {
-            when {
-                // 初期状態
-                !player.isPlaying && !player.isPrepared -> {
-                    player.prepare(
-                        getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.absolutePath + "/humming/hoge.wav",
-                        recorder.tones
-                    )
-                    player.onComplete = {
-                        button_play.setImageResource(R.drawable.ic_play_arrow)
-                    }
-                    player.play()
-                    button_play.setImageResource(R.drawable.ic_pause)
-                }
-                // 再生中
-                player.isPlaying -> {
-                    player.pause()
-                    button_play.setImageResource(R.drawable.ic_play_arrow)
-                }
-                // 一時停止中
-                player.isPrepared -> {
-                    player.play()
-                    button_play.setImageResource(R.drawable.ic_pause)
-                }
-            }
+            togglePlayer()
         }
 
         /** midi接続ボタン */
         button_midi.setOnClickListener {
-            if (midiDevice != null) return@setOnClickListener
-
-            val midiDeviceInfo = MidiDevice.getDeviceList(this)
-
-            AlertDialog.Builder(this)
-                .setTitle("Midiデバイスを選択してください")
-                .setItems(midiDeviceInfo.map { "Midi Port ${it.id}" }.toTypedArray()) { _, which ->
-                    midiDevice = MidiDevice(
-                        this,
-                        MidiDevice.getDeviceList(this)[which]
-                    )
-                    midiPlayer = MidiPlayer(midiDevice!!, player.notesStream)
-                    button_midi.compoundDrawablesRelative[0].colorFilter =
-                        PorterDuffColorFilter(resources.getColor(R.color.colorAccent), PorterDuff.Mode.SRC_IN)
-
-                    Toast.makeText(this, "Midi Port に接続しました", Toast.LENGTH_LONG).show()
-                }.show()
+            showMidiMenu()
         }
 
         button_play.isEnabled = false
@@ -132,6 +93,53 @@ class MainActivity : AppCompatActivity() {
         button_play.isEnabled = true
 
         Toast.makeText(this, "開発中につき、録音し直すには再起動してください", Toast.LENGTH_LONG).show()
+    }
+
+    private fun togglePlayer() {
+        when {
+            // 初期状態
+            !player.isPlaying && !player.isPrepared -> {
+                player.prepare(
+                    getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.absolutePath + "/humming/hoge.wav",
+                    recorder.tones
+                )
+                player.onComplete = {
+                    button_play.setImageResource(R.drawable.ic_play_arrow)
+                }
+                player.play()
+                button_play.setImageResource(R.drawable.ic_pause)
+            }
+            // 再生中
+            player.isPlaying -> {
+                player.pause()
+                button_play.setImageResource(R.drawable.ic_play_arrow)
+            }
+            // 一時停止中
+            player.isPrepared -> {
+                player.play()
+                button_play.setImageResource(R.drawable.ic_pause)
+            }
+        }
+    }
+
+    private fun showMidiMenu() {
+        if (midiDevice != null) return
+
+        val midiDeviceInfo = MidiDevice.getDeviceList(this)
+
+        AlertDialog.Builder(this)
+            .setTitle("Midiデバイスを選択してください")
+            .setItems(midiDeviceInfo.map { "Midi Port ${it.id}" }.toTypedArray()) { _, which ->
+                midiDevice = MidiDevice(
+                    this,
+                    MidiDevice.getDeviceList(this)[which]
+                )
+                midiPlayer = MidiPlayer(midiDevice!!, player.notesStream)
+                button_midi.compoundDrawablesRelative[0].colorFilter =
+                    PorterDuffColorFilter(resources.getColor(R.color.colorAccent), PorterDuff.Mode.SRC_IN)
+
+                Toast.makeText(this, "Midi Port に接続しました", Toast.LENGTH_LONG).show()
+            }.show()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
