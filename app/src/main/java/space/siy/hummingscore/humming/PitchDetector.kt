@@ -1,11 +1,15 @@
-package space.siy.hummingscore
+package space.siy.hummingscore.humming
 
 import be.tarsos.dsp.pitch.McLeodPitchMethod
 import kotlin.math.abs
 import kotlin.math.pow
 
+/**
+ * McLeod Pitch Method を用いてピッチを解析する
+ */
 object PitchDetector {
 
+    /** 音程と周波数の対応付けを格納するリスト */
     val levels = (0..88).map { i ->
         (27.5 * (2.0.pow(1 / 12.0)).pow(i)).toInt()
     }
@@ -25,6 +29,7 @@ object PitchDetector {
 
 val degrees = arrayOf("A", "B♭", "B", "C", "C#", "D", "E♭", "E", "F", "F#", "G", "G#")
 
+/** 鍵盤番号を名前に変換 */
 fun Int.toNoteName(): String {
     val degree = this % 12
     val octaveNumber = (this - 3) / 12

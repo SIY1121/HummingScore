@@ -1,4 +1,4 @@
-package space.siy.hummingscore
+package space.siy.hummingscore.humming
 
 import android.content.Context
 import android.graphics.*
@@ -9,7 +9,11 @@ import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import io.reactivex.Observable
+import space.siy.hummingscore.R
 
+/**
+ * 楽譜を表示するカスタムビュー
+ */
 class ScoreView : FrameLayout {
     constructor(context: Context) : super(context)
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs)
@@ -21,27 +25,34 @@ class ScoreView : FrameLayout {
         defStyleRes
     )
 
+    /** 表示部 */
     val innerView: InnerView
+
+    /** 表示部をラップするScrollView */
     val scrollView: HorizontalScrollView
 
+    /** テンポや解像度のオプション */
     var hummingOption: HummingOption
         set(value) {
             innerView.hummingOption = value
         }
         get() = innerView.hummingOption
 
+    /** notes情報として監視するストリーム */
     var notesObservable: Observable<Int>?
         set(value) {
             innerView.notesObservable = value
         }
         get() = innerView.notesObservable
 
+    /**  波形プレビューとして監視するストリーム */
     var previewSamplesObservable: Observable<Byte>?
         set(value) {
             innerView.previewSampleObservable = value
         }
         get() = innerView.previewSampleObservable
 
+    /**  再生位置として監視するストリーム */
     var playerPositionObservable: Observable<Int>?
         set(value) {
             innerView.playerPositionObservable = value
@@ -79,19 +90,21 @@ class ScoreView : FrameLayout {
             defStyleRes
         )
 
-        val notePaint = Paint().apply {
+        private val notePaint = Paint().apply {
             color = context.resources.getColor(R.color.colorAccent)
         }
-        val noteWidth = 30f
-        val noteHeight = 20f
+        private val noteWidth = 30f
+        private val noteHeight = 20f
+        private val noteCenter = PointF(0f, 500f)
 
-        val noteCenter = PointF(0f, 500f)
-
-
-        val wavePaint = Paint().apply {
+        private val wavePaint = Paint().apply {
             color = context.resources.getColor(R.color.colorPrimary)
         }
-        val waveCenter = PointF(0f, 1000f)
+        private val waveCenter = PointF(0f, 1000f)
+
+        private val playerPositionPaint = Paint().apply {
+            color = context.resources.getColor(R.color.colorPrimaryDark)
+        }
 
         var scrollToRight: (() -> Unit)? = null
         var scrollToNextPage: (() -> Unit)? = null
@@ -100,10 +113,10 @@ class ScoreView : FrameLayout {
 
         var hummingOption = HummingOption()
 
-        val widthPerSec
+        private val widthPerSec
             get() = hummingOption.bpm / 60f * (hummingOption.noteResolution / 4) * noteWidth
 
-        val parentWidth: Int
+        private val parentWidth: Int
             get() {
                 val p = parent.parent
                 return if (p is View)
@@ -111,7 +124,7 @@ class ScoreView : FrameLayout {
                 else 0
             }
 
-        var playerPosition = -1
+        private var playerPosition = -100000
             set(value) {
                 val prevPage = ((field / 1000f * widthPerSec) / parentWidth).toInt()
                 val page = ((value / 1000f * widthPerSec) / parentWidth).toInt()
@@ -123,6 +136,7 @@ class ScoreView : FrameLayout {
                 invalidate()
             }
 
+        // TODO サブスクリプションの管理
         var notesObservable: Observable<Int>? = null
             set(value) {
                 value?.subscribe {
@@ -155,17 +169,22 @@ class ScoreView : FrameLayout {
             )
         }
 
-        var notes = MutableList<Int>(0) { _ -> 0 }
-        val previewSamples = MutableList<Byte>(0) { _ -> 0 }
+        private var notes = MutableList<Int>(0) { _ -> 0 }
+        private val previewSamples = MutableList<Byte>(0) { _ -> 0 }
 
+        /**  描画部分 */
         override fun onDraw(canvas: Canvas) {
             canvas.drawColor(Color.TRANSPARENT)
+
+            // ページを増やす
             if (notes.size * noteWidth > width) {
                 layoutParams = LinearLayout.LayoutParams(layoutParams).apply {
                     width += parentWidth
                 }
                 scrollToRight?.invoke()
             }
+
+            // 音程バーの描画
             notes.forEachIndexed { index, _note ->
                 val note = _note - 36
                 canvas.drawRect(
@@ -176,6 +195,8 @@ class ScoreView : FrameLayout {
                     notePaint
                 )
             }
+
+            // 波形の描画
             previewSamples.forEachIndexed { index, byte ->
                 val level = byte / 256f * 25f
                 canvas.drawRect(
@@ -186,6 +207,8 @@ class ScoreView : FrameLayout {
                     wavePaint
                 )
             }
+
+            // 再生位置の描画
             canvas.drawRect(
                 playerPosition / 1000f * widthPerSec,
                 0f,

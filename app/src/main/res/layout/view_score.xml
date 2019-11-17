@@ -10,7 +10,7 @@
         android:orientation="horizontal">
 
         <view
-            class="space.siy.hummingscore.ScoreView$InnerView"
+            class="space.siy.hummingscore.humming.ScoreView$InnerView"
             android:id="@+id/score_inner"
             android:layout_width="1dp"
             android:layout_height="match_parent" />

@@ -1,11 +1,14 @@
-package space.siy.hummingscore
+package space.siy.hummingscore.wav
 
 import kotlin.experimental.and
 import java.io.*
 
-
+/**
+ * .wavファイルにサンプルを書き込む
+ */
 class WavWriter(private val sampleRate: Int, private val file: File) {
     private val buf = ByteArrayOutputStream()
+
     fun writeSample(arr: ShortArray) {
         synchronized(buf){
             buf.write(arr.toByteArray())
@@ -31,29 +34,29 @@ class WavWriter(private val sampleRate: Int, private val file: File) {
 
         outFile.writeBytes("RIFF")
         outFile.write(myChunkSize.toByteArray(), 0, 4)
-        outFile.writeBytes("WAVE")                                 // 08 - WAVE
-        outFile.writeBytes("fmt ")                                 // 12 - fmt
-        outFile.write(mySubChunk1Size.toByteArray(), 0, 4)  // 16 - size of this chunk
+        outFile.writeBytes("WAVE")
+        outFile.writeBytes("fmt ")
+        outFile.write(mySubChunk1Size.toByteArray(), 0, 4) // チャンクサイズ
         outFile.write(
             shortArrayOf(myFormat.toShort()).toByteArray(),
             0,
             2
-        )     // 20 - what is the audio format? 1 for PCM = Pulse Code Modulation
+        )     // オーディオフォーマット 1 = PCM
         outFile.write(
             shortArrayOf(myChannels.toShort()).toByteArray(),
             0,
             2
-        )   // 22 - mono or stereo? 1 or 2?  (or 5 or ???)
-        outFile.write(mySampleRate.toByteArray(), 0, 4)     // 24 - samples per second (numbers per second)
-        outFile.write(myByteRate.toByteArray(), 0, 4)       // 28 - bytes per second
-        outFile.write(myBlockAlign.toByteArray(), 0, 2) // 32 - # of bytes in one sample, for all channels
+        )   // チャンネル数
+        outFile.write(mySampleRate.toByteArray(), 0, 4) // 1秒あたりのサンプル数
+        outFile.write(myByteRate.toByteArray(), 0, 4) // バイトレート
+        outFile.write(myBlockAlign.toByteArray(), 0, 2) // バイトレート
         outFile.write(
             shortArrayOf(myBitsPerSample.toShort()).toByteArray(),
             0,
             2
-        )  // 34 - how many bits in a sample(number)?  usually 16 or 24
-        outFile.writeBytes("data")                                 // 36 - data
-        outFile.write(myDataSize.toByteArray(), 0, 4)       // 40 - how big is this data chunk
+        )  // 量子化ビット数
+        outFile.writeBytes("data")
+        outFile.write(myDataSize.toByteArray(), 0, 4) // データチャンクのサイズ
         outFile.write(clipData)
         outFile.flush()
         outFile.close()

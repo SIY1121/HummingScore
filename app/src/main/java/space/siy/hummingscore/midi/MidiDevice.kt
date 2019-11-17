@@ -1,4 +1,4 @@
-package space.siy.hummingscore
+package space.siy.hummingscore.midi
 
 import android.content.Context
 import android.media.midi.MidiDevice
@@ -7,14 +7,18 @@ import android.media.midi.MidiInputPort
 import android.media.midi.MidiManager
 import android.os.Handler
 
-class MidiDevice(val context: Context, val info: MidiDeviceInfo) {
+/**
+ * Midiデバイス
+ */
+class MidiDevice(private val context: Context, val info: MidiDeviceInfo) {
     companion object {
-        fun getDeviceList(context: Context) = (context.getSystemService(Context.MIDI_SERVICE) as MidiManager).devices
+        fun getDeviceList(context: Context): Array<MidiDeviceInfo>
+                = (context.getSystemService(Context.MIDI_SERVICE) as MidiManager).devices
     }
 
     private val manager = context.getSystemService(Context.MIDI_SERVICE) as MidiManager
-    lateinit var midiDevice: MidiDevice
-    lateinit var inputPort: MidiInputPort
+    private lateinit var midiDevice: MidiDevice
+    private lateinit var inputPort: MidiInputPort
 
     init {
         manager.openDevice(info, {
@@ -23,6 +27,9 @@ class MidiDevice(val context: Context, val info: MidiDeviceInfo) {
         }, Handler())
     }
 
+    /**
+     * キーを押した信号を送る
+     */
     fun noteOn(tone: Int) {
         val channel = 1
         val velocity = 127.toByte()
@@ -30,6 +37,9 @@ class MidiDevice(val context: Context, val info: MidiDeviceInfo) {
         inputPort.send(buf, 0, buf.size)
     }
 
+    /**
+     * キーを離した信号を送る
+     */
     fun noteOff(tone: Int) {
         val channel = 1
         val velocity = 127.toByte()

@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <space.siy.hummingscore.ScoreView
+    <space.siy.hummingscore.humming.ScoreView
         android:id="@+id/scoreView"
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -32,6 +32,7 @@
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/button_play"
+        android:alpha="0.5"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -48,8 +49,20 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="40dp"
         android:layout_marginTop="16dp"
-        android:text="TextView"
+        android:text="ここに音程が表示されます"
         app:layout_constraintStart_toEndOf="@+id/button_play"
         app:layout_constraintTop_toTopOf="@+id/button_record" />
+
+    <Button
+        android:id="@+id/button_midi"
+        style="@style/Widget.AppCompat.Button.Borderless.Colored"
+        android:layout_width="50dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="16dp"
+        android:drawableStart="@drawable/ic_piano"
+        android:drawableTint="@color/colorPrimary"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

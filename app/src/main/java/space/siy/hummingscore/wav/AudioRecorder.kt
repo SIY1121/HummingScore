@@ -1,4 +1,4 @@
-package space.siy.hummingscore
+package space.siy.hummingscore.wav
 
 import android.media.AudioFormat
 import android.media.AudioRecord
@@ -11,12 +11,18 @@ import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlin.math.abs
 
+/**
+ * マイクから音声を拾い、サンプルをStreamに流す責務を持つ
+ * @param sampleRate サンプルレート
+ * @param oneFrameDataCount 1フレームあたりのサンプル数
+ */
 class AudioRecorder(val sampleRate: Int, val oneFrameDataCount: Int) {
-    val oneFrameSizeInByte = oneFrameDataCount * 2
+
+    private val oneFrameSizeInByte = oneFrameDataCount * 2
     private val bufferSizeInByte =
         AudioRecord.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
-    val audioArray = ShortArray(oneFrameDataCount)
-    val thread = HandlerThread("AudioRecordThread")
+    private val audioArray = ShortArray(oneFrameDataCount)
+    private val thread = HandlerThread("AudioRecordThread")
 
     private val audioRecord = AudioRecord(
         MediaRecorder.AudioSource.MIC,
@@ -26,9 +32,11 @@ class AudioRecorder(val sampleRate: Int, val oneFrameDataCount: Int) {
         bufferSizeInByte * 2
     )
 
+
     init {
         thread.start()
     }
+
 
     fun start() = Observable.create<ShortArray> {
         audioRecord.positionNotificationPeriod = oneFrameDataCount
@@ -37,15 +45,14 @@ class AudioRecorder(val sampleRate: Int, val oneFrameDataCount: Int) {
                 recorder.read(audioArray, 0, oneFrameDataCount)
                 it.onNext(audioArray)
             }
-
             override fun onMarkerReached(recorder: AudioRecord) {}
         }, Handler(thread.looper))
         audioRecord.startRecording()
         audioRecord.read(audioArray, 0, oneFrameDataCount)
     }.publish().refCount()
 
+
     fun stop() {
         audioRecord.stop()
-
     }
 }

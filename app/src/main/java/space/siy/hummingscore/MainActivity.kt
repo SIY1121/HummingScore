@@ -1,77 +1,112 @@
 package space.siy.hummingscore
 
-import android.media.*
+import android.Manifest
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffColorFilter
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Environment
-import io.reactivex.Observable
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
+import permissions.dispatcher.NeedsPermission
+import permissions.dispatcher.RuntimePermissions
+import space.siy.hummingscore.humming.HummingOption
+import space.siy.hummingscore.humming.HummingPlayer
+import space.siy.hummingscore.humming.HummingRecorder
+import space.siy.hummingscore.humming.toNoteName
+import space.siy.hummingscore.midi.MidiDevice
+import space.siy.hummingscore.midi.MidiPlayer
 import java.io.File
-import java.util.concurrent.TimeUnit
 
+@RuntimePermissions
 class MainActivity : AppCompatActivity() {
-
-    val player = MediaPlayer()
-    var recording = false
-
     val hummingOption = HummingOption(120, 16, 1)
 
-    val playerTimer = Observable.interval(20, TimeUnit.MILLISECONDS, Schedulers.computation())
-    lateinit var notesStream: Observable<Int>
+    lateinit var recorder: HummingRecorder
+    val player = HummingPlayer(hummingOption)
 
     var midiDevice: MidiDevice? = null
     var midiPlayer: MidiPlayer? = null
 
+    var recording = false
+    var hasData = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        /** 録音ボタン */
         button_record.setOnClickListener {
-            record()
+            if (!recording)
+                recordWithPermissionCheck()
+            else
+                stopRecord()
         }
+
+        /** 再生ボタン */
         button_play.setOnClickListener {
-            player.setDataSource(getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.absolutePath + "/humming/hoge.wav")
-            player.setOnCompletionListener {
-                player.stop()
-                player.reset()
+            when {
+                // 初期状態
+                !player.isPlaying && !player.isPrepared -> {
+                    player.prepare(
+                        getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.absolutePath + "/humming/hoge.wav",
+                        recorder.tones
+                    )
+                    player.onComplete = {
+                        button_play.setImageResource(R.drawable.ic_play_arrow)
+                    }
+                    player.play()
+                    button_play.setImageResource(R.drawable.ic_pause)
+                }
+                // 再生中
+                player.isPlaying -> {
+                    player.pause()
+                    button_play.setImageResource(R.drawable.ic_play_arrow)
+                }
+                // 一時停止中
+                player.isPrepared -> {
+                    player.play()
+                    button_play.setImageResource(R.drawable.ic_pause)
+                }
             }
-            player.prepare()
-            player.start()
         }
+
+        /** midi接続ボタン */
+        button_midi.setOnClickListener {
+            if (midiDevice != null) return@setOnClickListener
+
+            val midiDeviceInfo = MidiDevice.getDeviceList(this)
+
+            AlertDialog.Builder(this)
+                .setTitle("Midiデバイスを選択してください")
+                .setItems(midiDeviceInfo.map { "Midi Port ${it.id}" }.toTypedArray()) { _, which ->
+                    midiDevice = MidiDevice(
+                        this,
+                        MidiDevice.getDeviceList(this)[which]
+                    )
+                    midiPlayer = MidiPlayer(midiDevice!!, player.notesStream)
+                    button_midi.compoundDrawablesRelative[0].colorFilter =
+                        PorterDuffColorFilter(resources.getColor(R.color.colorAccent), PorterDuff.Mode.SRC_IN)
+
+                    Toast.makeText(this, "Midi Port に接続しました", Toast.LENGTH_LONG).show()
+                }.show()
+        }
+
+        button_play.isEnabled = false
+
         scoreView.hummingOption = hummingOption
-
-        notesStream = playerTimer
-            .filter { player.isPlaying }
-            .observeOn(AndroidSchedulers.mainThread()).map {
-                val index =
-                    (player.currentPosition / 1000f * (hummingOption.bpm / 60f) * (hummingOption.noteResolution / 4)).toInt()
-                recorder.tones[index]
-            }
-
-        val midiDeviceInfo = MidiDevice.getDeviceList(this)
-        if (midiDeviceInfo.isNotEmpty()) {
-            midiDevice = MidiDevice(this, MidiDevice.getDeviceList(this)[0])
-            midiPlayer = MidiPlayer(midiDevice!!, notesStream)
-        }
-
-        val a = Observable.fromArray(1, 2, 3, 4, 5, 6, 7, 8, 9).buffer(3).map {
-            println("map$it")
-            it
-        }.doOnNext { println("doOnNext$it") }.publish().refCount()
-        a.subscribe { println("subA$it") }
-        a.subscribe { println("subB$it") }
-        println("hi")
+        scoreView.playerPositionObservable = player.playerTimer.observeOn(AndroidSchedulers.mainThread())
+        player.notesStream.observeOn(AndroidSchedulers.mainThread()).subscribe { textView.text = it.toNoteName() }
     }
 
-    lateinit var recorder: HummingRecorder
-    private fun record() {
-        if (recording) {
-            recorder.stop()
-            recording = false
-            button_record.setImageResource(R.drawable.ic_fiber_manual_record)
-            return
-        }
+    @NeedsPermission(
+        Manifest.permission.RECORD_AUDIO,
+        Manifest.permission.READ_EXTERNAL_STORAGE,
+        Manifest.permission.WRITE_EXTERNAL_STORAGE
+    )
+    fun record() {
         File(getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.absolutePath + "/humming").mkdir()
         val file = File(getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.absolutePath + "/humming/hoge.wav")
         recorder = HummingRecorder(file, hummingOption)
@@ -81,8 +116,26 @@ class MainActivity : AppCompatActivity() {
             textView.text = it.toNoteName()
         }
         scoreView.previewSamplesObservable = recorder.previewSampleObservable
-        scoreView.playerPositionObservable = playerTimer.filter { player.isPlaying }.map { player.currentPosition }
         recording = true
         button_record.setImageResource(R.drawable.ic_stop)
+    }
+
+    private fun stopRecord() {
+        recorder.stop()
+        recording = false
+        hasData = true
+
+        button_record.setImageResource(R.drawable.ic_fiber_manual_record)
+        button_record.isEnabled = false
+        button_record.alpha = 0.5f
+        button_play.alpha = 1f
+        button_play.isEnabled = true
+
+        Toast.makeText(this, "開発中につき、録音し直すには再起動してください", Toast.LENGTH_LONG).show()
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        onRequestPermissionsResult(requestCode, grantResults)
     }
 }
