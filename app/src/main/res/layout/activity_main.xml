@@ -31,6 +31,19 @@
         app:srcCompat="@drawable/ic_fiber_manual_record" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/button_edit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:alpha="0.5"
+        android:clickable="true"
+        android:tint="@android:color/white"
+        app:backgroundTint="@color/colorPrimaryDark"
+        app:layout_constraintStart_toEndOf="@+id/button_play"
+        app:layout_constraintTop_toTopOf="@+id/button_record"
+        app:srcCompat="@drawable/ic_mode_edit" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/button_play"
         android:alpha="0.5"
         android:layout_width="wrap_content"
@@ -47,9 +60,9 @@
         android:id="@+id/textView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="40dp"
-        android:layout_marginTop="16dp"
-        android:text="ここに音程が表示されます"
+        android:layout_marginStart="88dp"
+        android:layout_marginTop="20dp"
+        android:text="音程"
         app:layout_constraintStart_toEndOf="@+id/button_play"
         app:layout_constraintTop_toTopOf="@+id/button_record" />
 

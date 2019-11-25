@@ -5,38 +5,43 @@ import io.reactivex.schedulers.Schedulers
 import space.siy.hummingscore.wav.AudioRecorder
 import space.siy.hummingscore.wav.WavWriter
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.*
 
 /**
  * 流れてくるサンプルデータをピッチ情報に変換して流す
  * また、並行してwavファイルへの保存も行う
- * @param file .wavの保存先
+ * @param wavFile .wavの保存先
  * @param option 解析に係る設定
  */
-class HummingRecorder(val file: File, val option: HummingOption) {
+class HummingRecorder(val wavFile: File, val jsonFile: File, val option: HummingOption) : HummingSource {
     val sampleRate = 44100
 
     private val oneFrameSampleCount = (sampleRate * 60 / option.bpm) / (option.noteResolution / 4)
     private val recorder =
         AudioRecorder(sampleRate, oneFrameSampleCount / option.previewWaveSampleRate)
-    private val wavWriter = WavWriter(sampleRate, file)
+    private val wavWriter = WavWriter(sampleRate, wavFile)
 
-    val tones = MutableList<Int>(0) { _ -> 0 }
+    override val notes = MutableList<Int>(0) { _ -> 0 }
+    override val previewSamples = MutableList<Byte>(0) { _ -> 0 }
 
     /**  生のサンプルが流れてくる */
     lateinit var sampleObservable: Observable<ShortArray>
 
     /** ピッチの情報を流す */
-    lateinit var notesObservable: Observable<Int>
+    override lateinit var notesObservable: Observable<Int>
 
     /**  プレビュー用にダウンサンプリングした波形を流す */
-    lateinit var previewSampleObservable: Observable<Byte>
+    override lateinit var previewSampleObservable: Observable<Byte>
 
     private val avgParam = 3
 
-    fun start() {
+    override fun start() {
         sampleObservable = recorder.start().observeOn(Schedulers.computation())
         sampleObservable.subscribe { samples ->
             wavWriter.writeSample(samples)
+            val s = ((samples.map { it.toFloat() }.max() ?: 0f) / Short.MAX_VALUE * 256).toByte()
+            previewSamples.add(s)
         }
         notesObservable = sampleObservable
             .buffer(option.previewWaveSampleRate)
@@ -48,21 +53,32 @@ class HummingRecorder(val file: File, val option: HummingOption) {
                     samples += it
                 }
                 var tone = PitchDetector.analyze(samples)
-                if(tone == 0)
-                    tone = tones.lastOrNull() ?: 0
+                if (tone == 0)
+                    tone = notes.lastOrNull() ?: 0
 
-                synchronized(tones) {
-                    tones.add(tone)
+                synchronized(notes) {
+                    notes.add(tone)
                 }
                 tone
             }.publish().refCount()
         previewSampleObservable = sampleObservable.map { samples ->
-            ((samples.map { it.toFloat() }.max() ?: 0f) / Short.MAX_VALUE * 256).toByte()
+            val s = ((samples.map { it.toFloat() }.max() ?: 0f) / Short.MAX_VALUE * 256).toByte()
+            s
         }
     }
 
-    fun stop() {
+    override var hummingData = HummingData(jsonFile.nameWithoutExtension, option, notes, previewSamples)
+
+    override fun stop() {
         recorder.stop()
         wavWriter.flush()
+
+        hummingData = HummingData("新しいHumming", option, notes, previewSamples)
+        hummingData.save(jsonFile)
     }
+    override fun rename(name: String) {
+        hummingData.name = name
+        hummingData.save(jsonFile)
+    }
+
 }

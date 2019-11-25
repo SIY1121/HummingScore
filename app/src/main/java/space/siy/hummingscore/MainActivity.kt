@@ -6,25 +6,26 @@ import android.graphics.PorterDuffColorFilter
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Environment
+import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import io.reactivex.android.schedulers.AndroidSchedulers
 import kotlinx.android.synthetic.main.activity_main.*
 import permissions.dispatcher.NeedsPermission
 import permissions.dispatcher.RuntimePermissions
-import space.siy.hummingscore.humming.HummingOption
-import space.siy.hummingscore.humming.HummingPlayer
-import space.siy.hummingscore.humming.HummingRecorder
-import space.siy.hummingscore.humming.toNoteName
+import space.siy.hummingscore.humming.*
 import space.siy.hummingscore.midi.MidiDevice
 import space.siy.hummingscore.midi.MidiPlayer
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.*
+
 
 @RuntimePermissions
 class MainActivity : AppCompatActivity() {
     val hummingOption = HummingOption(120, 16, 1)
 
-    lateinit var recorder: HummingRecorder
+    lateinit var recorder: HummingSource
     val player = HummingPlayer(hummingOption)
 
     var midiDevice: MidiDevice? = null
@@ -32,10 +33,29 @@ class MainActivity : AppCompatActivity() {
 
     var recording = false
     var hasData = false
-
+    var now = ""
+    var jsonPath = ""
+    var path = ""
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        button_play.isEnabled = false
+        button_edit.isEnabled = false
+
+        jsonPath = intent.getStringExtra("path") ?: ""
+        if (jsonPath.isNotBlank()) {
+            button_record.isEnabled = false
+            button_record.alpha = 0.5f
+            button_play.alpha = 1f
+            button_play.isEnabled = true
+            button_edit.alpha = 1f
+            button_edit.isEnabled = true
+            path = jsonPath.replace(".json", ".wav")
+            recorder = HummingFile(jsonPath)
+            observe()
+            stopRecord()
+        }
 
         /** 録音ボタン */
         button_record.setOnClickListener {
@@ -55,7 +75,10 @@ class MainActivity : AppCompatActivity() {
             showMidiMenu()
         }
 
-        button_play.isEnabled = false
+        button_edit.setOnClickListener {
+            showEditDialog()
+        }
+
 
         scoreView.hummingOption = hummingOption
         scoreView.playerPositionObservable = player.playerTimer.observeOn(AndroidSchedulers.mainThread())
@@ -68,17 +91,26 @@ class MainActivity : AppCompatActivity() {
         Manifest.permission.WRITE_EXTERNAL_STORAGE
     )
     fun record() {
+        now = SimpleDateFormat("yyyy-MM-dd-hh-mm-ss-SSS").format(
+            Date()
+        )
         File(getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.absolutePath + "/humming").mkdir()
-        val file = File(getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.absolutePath + "/humming/hoge.wav")
-        recorder = HummingRecorder(file, hummingOption)
+        val wavFile = File(getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.absolutePath + "/humming/$now.wav")
+        val jsonFile = File(getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.absolutePath + "/humming/$now.json")
+        path = wavFile.absolutePath
+        recorder = HummingRecorder(wavFile, jsonFile, hummingOption)
         recorder.start()
+        observe()
+        recording = true
+        button_record.setImageResource(R.drawable.ic_stop)
+    }
+
+    fun observe() {
         scoreView.notesObservable = recorder.notesObservable
         recorder.notesObservable.observeOn(AndroidSchedulers.mainThread()).subscribe {
             textView.text = it.toNoteName()
         }
         scoreView.previewSamplesObservable = recorder.previewSampleObservable
-        recording = true
-        button_record.setImageResource(R.drawable.ic_stop)
     }
 
     private fun stopRecord() {
@@ -91,6 +123,8 @@ class MainActivity : AppCompatActivity() {
         button_record.alpha = 0.5f
         button_play.alpha = 1f
         button_play.isEnabled = true
+        button_edit.alpha = 1f
+        button_edit.isEnabled = true
 
         Toast.makeText(this, "開発中につき、録音し直すには再起動してください", Toast.LENGTH_LONG).show()
     }
@@ -100,8 +134,8 @@ class MainActivity : AppCompatActivity() {
             // 初期状態
             !player.isPlaying && !player.isPrepared -> {
                 player.prepare(
-                    getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.absolutePath + "/humming/hoge.wav",
-                    recorder.tones
+                    path,
+                    recorder.notes
                 )
                 player.onComplete = {
                     button_play.setImageResource(R.drawable.ic_play_arrow)
@@ -140,6 +174,18 @@ class MainActivity : AppCompatActivity() {
 
                 Toast.makeText(this, "Midi Port に接続しました", Toast.LENGTH_LONG).show()
             }.show()
+    }
+
+    private fun showEditDialog() {
+        val view = layoutInflater.inflate(R.layout.dialog_edit, null)
+        val edit = view.findViewById<EditText>(R.id.name_edit_text)
+        edit.setText(recorder.hummingData.name)
+        AlertDialog.Builder(this)
+            .setView(view)
+            .setPositiveButton("保存") { _, _ ->
+                recorder.rename(edit.text.toString())
+            }
+            .show()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
