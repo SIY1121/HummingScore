@@ -59,6 +59,9 @@ class ScoreView : FrameLayout {
         }
         get() = innerView.playerPositionObservable
 
+    val widthPerSec
+            get() = innerView.widthPerSec
+
     init {
         inflate(context, R.layout.view_score, this)
         innerView = findViewById(R.id.score_inner)
@@ -114,7 +117,7 @@ class ScoreView : FrameLayout {
 
         var hummingOption = HummingOption()
 
-        private val widthPerSec
+        val widthPerSec
             get() = hummingOption.bpm / 60f * (hummingOption.noteResolution / 4) * noteWidth
 
         private val parentWidth: Int

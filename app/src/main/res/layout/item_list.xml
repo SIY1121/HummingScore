@@ -6,6 +6,7 @@
     android:orientation="horizontal">
 
     <ImageView
+        android:padding="16dp"
         android:id="@+id/imageView2"
         android:layout_width="56dp"
         android:layout_height="56dp"
@@ -13,10 +14,11 @@
         app:srcCompat="@drawable/ic_music_note" />
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_gravity="center_vertical"
         android:gravity="center_vertical"
+        android:layout_weight="2"
         android:orientation="vertical">
 
         <TextView
@@ -33,4 +35,29 @@
             android:textSize="10sp" />
     </LinearLayout>
 
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="center_vertical"
+        android:layout_weight="1"
+        android:gravity="center_vertical|end"
+        android:orientation="vertical"
+        android:paddingEnd="16dp">
+
+        <TextView
+            android:id="@+id/humming_len_text_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TextView"
+            android:textSize="10sp" />
+
+        <TextView
+            android:id="@+id/humming_size_text_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TextView"
+            android:textAlignment="textStart"
+            android:textSize="10sp" />
+    </LinearLayout>
 </LinearLayout>

@@ -6,6 +6,7 @@ apply plugin: 'kotlin-android-extensions'
 
 apply plugin: 'kotlin-kapt'
 
+apply plugin: 'com.google.android.gms.oss-licenses-plugin'
 android {
     compileSdkVersion 29
     buildToolsVersion "29.0.2"
@@ -42,4 +43,5 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.8.6'
     kapt "org.permissionsdispatcher:permissionsdispatcher-processor:4.6.0"
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
+    implementation 'com.google.android.gms:play-services-oss-licenses:17.0.0'
 }

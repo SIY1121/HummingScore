@@ -6,9 +6,13 @@ import android.graphics.PorterDuffColorFilter
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Environment
+import android.view.MenuItem
+import android.view.MotionEvent
+import android.view.View
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.core.app.NavUtils
 import io.reactivex.android.schedulers.AndroidSchedulers
 import kotlinx.android.synthetic.main.activity_main.*
 import permissions.dispatcher.NeedsPermission
@@ -23,7 +27,7 @@ import java.util.*
 
 @RuntimePermissions
 class MainActivity : AppCompatActivity() {
-    val hummingOption = HummingOption(120, 16, 1)
+    var hummingOption = HummingOption(120, 16, 1)
 
     lateinit var recorder: HummingSource
     val player = HummingPlayer(hummingOption)
@@ -36,9 +40,15 @@ class MainActivity : AppCompatActivity() {
     var now = ""
     var jsonPath = ""
     var path = ""
+
+    var lastTouchedX = 0f
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        title = "新規Humming"
+
+        actionBar?.setDisplayShowHomeEnabled(true)
 
         button_play.isEnabled = false
         button_edit.isEnabled = false
@@ -53,8 +63,16 @@ class MainActivity : AppCompatActivity() {
             button_edit.isEnabled = true
             path = jsonPath.replace(".json", ".wav")
             recorder = HummingFile(jsonPath)
+            title = recorder.hummingData.name
+            hummingOption = recorder.hummingData.option
+            setting_wrapper.visibility = View.GONE
             observe()
             stopRecord()
+        } else {
+            clearNoteButtonColor()
+            note_button_16.compoundDrawablesRelative[0].colorFilter =
+                PorterDuffColorFilter(resources.getColor(R.color.colorPrimaryDark), PorterDuff.Mode.SRC_IN)
+            hummingOption.noteResolution = 16
         }
 
         /** 録音ボタン */
@@ -79,6 +97,46 @@ class MainActivity : AppCompatActivity() {
             showEditDialog()
         }
 
+        tempo_button.setOnClickListener {
+            hummingOption.bpm = TempoDetector.tap()
+            tempo_text_view.text = "${hummingOption.bpm} BPM"
+        }
+
+        note_button_4.setOnClickListener {
+            clearNoteButtonColor()
+            note_button_4.compoundDrawablesRelative[0].colorFilter =
+            PorterDuffColorFilter(resources.getColor(R.color.colorPrimaryDark), PorterDuff.Mode.SRC_IN)
+            hummingOption.noteResolution = 4
+        }
+        note_button_8.setOnClickListener {
+            clearNoteButtonColor()
+            note_button_8.compoundDrawablesRelative[0].colorFilter =
+                PorterDuffColorFilter(resources.getColor(R.color.colorPrimaryDark), PorterDuff.Mode.SRC_IN)
+            hummingOption.noteResolution = 8
+        }
+        note_button_16.setOnClickListener {
+            clearNoteButtonColor()
+            note_button_16.compoundDrawablesRelative[0].colorFilter =
+                PorterDuffColorFilter(resources.getColor(R.color.colorPrimaryDark), PorterDuff.Mode.SRC_IN)
+            hummingOption.noteResolution = 16
+        }
+        note_button_32.setOnClickListener {
+            clearNoteButtonColor()
+            note_button_32.compoundDrawablesRelative[0].colorFilter =
+                PorterDuffColorFilter(resources.getColor(R.color.colorPrimaryDark), PorterDuff.Mode.SRC_IN)
+            hummingOption.noteResolution = 32
+        }
+
+        scoreView.innerView.setOnTouchListener { v, event ->
+            if (hasData && event.action == MotionEvent.ACTION_DOWN) {
+                lastTouchedX = event.x
+            }
+            false
+        }
+
+        scoreView.innerView.setOnClickListener {
+            player.seek((lastTouchedX / scoreView.widthPerSec * 1000).toInt())
+        }
 
         scoreView.hummingOption = hummingOption
         scoreView.playerPositionObservable = player.playerTimer.observeOn(AndroidSchedulers.mainThread())
@@ -103,6 +161,7 @@ class MainActivity : AppCompatActivity() {
         observe()
         recording = true
         button_record.setImageResource(R.drawable.ic_stop)
+        setting_wrapper.visibility = View.GONE
     }
 
     fun observe() {
@@ -117,6 +176,7 @@ class MainActivity : AppCompatActivity() {
         recorder.stop()
         recording = false
         hasData = true
+        player.hummingOption = hummingOption
 
         button_record.setImageResource(R.drawable.ic_fiber_manual_record)
         button_record.isEnabled = false
@@ -125,8 +185,6 @@ class MainActivity : AppCompatActivity() {
         button_play.isEnabled = true
         button_edit.alpha = 1f
         button_edit.isEnabled = true
-
-        Toast.makeText(this, "開発中につき、録音し直すには再起動してください", Toast.LENGTH_LONG).show()
     }
 
     private fun togglePlayer() {
@@ -184,12 +242,32 @@ class MainActivity : AppCompatActivity() {
             .setView(view)
             .setPositiveButton("保存") { _, _ ->
                 recorder.rename(edit.text.toString())
+                title = edit.text.toString()
             }
             .show()
+    }
+
+    private fun clearNoteButtonColor() {
+        val filter = PorterDuffColorFilter(resources.getColor(R.color.gray), PorterDuff.Mode.SRC_IN)
+        note_button_4.compoundDrawablesRelative[0].colorFilter = filter
+        note_button_8.compoundDrawablesRelative[0].colorFilter = filter
+        note_button_16.compoundDrawablesRelative[0].colorFilter = filter
+        note_button_32.compoundDrawablesRelative[0].colorFilter = filter
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == android.R.id.home)
+            onBackPressed()
+        return super.onOptionsItemSelected(item)
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         onRequestPermissionsResult(requestCode, grantResults)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        player.pause()
     }
 }
