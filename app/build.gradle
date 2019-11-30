@@ -14,8 +14,8 @@ android {
         applicationId "space.siy.hummingscore"
         minSdkVersion 23
         targetSdkVersion 29
-        versionCode 1
-        versionName "0.1.0"
+        versionCode 2
+        versionName "v0.2.0 β"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {

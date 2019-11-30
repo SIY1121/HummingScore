@@ -37,6 +37,7 @@ class ListActivity : AppCompatActivity() {
         humming_list_view.setOnItemLongClickListener { parent, view, position, id ->
             AlertDialog.Builder(this).setTitle("削除しますか？").setPositiveButton("はい") { _, _ ->
                 adapter.items[position].file.delete()
+                File(adapter.items[position].file.absolutePath.replace(".json", ".wav")).delete()
                 adapter.items.removeAt(position)
                 adapter.notifyDataSetChanged()
             }.setNegativeButton("キャンセル", null).show()
@@ -111,12 +112,17 @@ class ListActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.info_button -> AlertDialog.Builder(this).setTitle("HummingScore β v0.1.0").setMessage(
-                """
-                    このアプリはベータ版です。
-                    Developer: @SIY1121
-                """.trimIndent()
-            ).setPositiveButton("OK", null).show()
+            R.id.info_button -> {
+                val view = layoutInflater.inflate(
+                    R.layout.dialog_about,
+                    null
+                )
+                view.findViewById<TextView>(R.id.version_text_view).text = BuildConfig.VERSION_NAME
+                AlertDialog.Builder(this).setView(view).setPositiveButton(
+                    "OK"
+                    , null
+                ).show()
+            }
             R.id.license_button -> startActivity(Intent(this, OssLicensesMenuActivity::class.java))
         }
 
