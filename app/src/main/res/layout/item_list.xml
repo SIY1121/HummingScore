@@ -6,12 +6,12 @@
     android:orientation="horizontal">
 
     <ImageView
-        android:padding="16dp"
         android:id="@+id/imageView2"
         android:layout_width="56dp"
         android:layout_height="56dp"
+        android:padding="16dp"
         android:tint="@color/colorPrimary"
-        app:srcCompat="@drawable/ic_music_note" />
+        app:srcCompat="@drawable/ic_hs2" />
 
     <LinearLayout
         android:layout_width="0dp"
