@@ -1,18 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
-<HorizontalScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/score_outer"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:background="?android:colorBackground"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <LinearLayout
-        android:layout_width="wrap_content"
+    <view
+        class="space.siy.hummingscore.humming.ScoreView$KeyboardView"
+        android:layout_width="30dp"
         android:layout_height="match_parent"
-        android:orientation="horizontal">
+        android:elevation="5dp"
+        android:background="?android:colorBackground"
+        />
+    <HorizontalScrollView
+        android:id="@+id/score_outer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
-        <view
-            class="space.siy.hummingscore.humming.ScoreView$InnerView"
-            android:id="@+id/score_inner"
-            android:layout_width="1dp"
-            android:layout_height="match_parent" />
-    </LinearLayout>
-</HorizontalScrollView>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal">
+
+            <view
+                class="space.siy.hummingscore.humming.ScoreView$InnerView"
+                android:id="@+id/score_inner"
+                android:layout_width="1dp"
+                android:layout_height="match_parent" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+</LinearLayout>

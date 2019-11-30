@@ -14,7 +14,7 @@ import space.siy.hummingscore.R
 /**
  * 楽譜を表示するカスタムビュー
  */
-class ScoreView : FrameLayout {
+class ScoreView : LinearLayout {
     constructor(context: Context) : super(context)
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs)
     constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int) : super(context, attrs, defStyleAttr)
@@ -60,7 +60,7 @@ class ScoreView : FrameLayout {
         get() = innerView.playerPositionObservable
 
     val widthPerSec
-            get() = innerView.widthPerSec
+        get() = innerView.widthPerSec
 
     init {
         inflate(context, R.layout.view_score, this)
@@ -94,21 +94,23 @@ class ScoreView : FrameLayout {
         )
 
         private val notePaint = Paint().apply {
-            color = context.resources.getColor(R.color.colorAccent)
+            color = context.resources.getColor(R.color.colorPrimary)
+        }
+        private val dotPaint = Paint().apply {
+            color = context.resources.getColor(R.color.colorPrimaryDark)
         }
         private val noteWidth = 30f
         private val noteHeight = 20f
         private val noteCenter = PointF(0f, 500f)
 
         private val wavePaint = Paint().apply {
-            color = context.resources.getColor(R.color.colorPrimary)
+            color = context.resources.getColor(R.color.colorAccent)
         }
         private val waveCenter = PointF(0f, 1000f)
 
         private val playerPositionPaint = Paint().apply {
             color = context.resources.getColor(R.color.colorPrimaryDark)
         }
-        private val keyboardPaint = Paint()
 
         var scrollToRight: (() -> Unit)? = null
         var scrollToNextPage: (() -> Unit)? = null
@@ -176,8 +178,6 @@ class ScoreView : FrameLayout {
         private var notes = MutableList<Int>(0) { _ -> 0 }
         private val previewSamples = MutableList<Byte>(0) { _ -> 0 }
 
-        private val keyboardColor =
-            arrayOf(false, true, false, true, false, false, true, false, true, false, true, false)
 
         /**  描画部分 */
         override fun onDraw(canvas: Canvas) {
@@ -194,13 +194,69 @@ class ScoreView : FrameLayout {
             // 音程バーの描画
             notes.forEachIndexed { index, _note ->
                 val note = _note - 36
-                canvas.drawRect(
-                    index * noteWidth,
-                    noteCenter.y - note * noteHeight,
-                    (index + 1) * noteWidth,
-                    noteCenter.y - (note + 1) * noteHeight,
-                    notePaint
-                )
+                // 描画種類
+                when {
+                    (index == 0 || notes[index - 1] != _note) && (index == notes.lastIndex || notes[index + 1] != _note) -> {
+                        canvas.drawRect(
+                            index * noteWidth + noteHeight / 2,
+                            noteCenter.y - note * noteHeight,
+                            (index + 1) * noteWidth - noteHeight / 2,
+                            noteCenter.y - (note + 1) * noteHeight,
+                            notePaint
+                        )
+                        canvas.drawCircle(
+                            (index + 1) * noteWidth - noteHeight / 2,
+                            noteCenter.y - note * noteHeight - noteHeight / 2,
+                            noteHeight / 2,
+                            notePaint
+                        )
+                        canvas.drawCircle(
+                            index * noteWidth + noteHeight / 2,
+                            noteCenter.y - note * noteHeight - noteHeight / 2,
+                            noteHeight / 2,
+                            dotPaint
+                        )
+                    }
+                    index == 0 || notes[index - 1] != _note -> {
+                        canvas.drawRect(
+                            index * noteWidth + noteHeight / 2,
+                            noteCenter.y - note * noteHeight,
+                            (index + 1) * noteWidth,
+                            noteCenter.y - (note + 1) * noteHeight,
+                            notePaint
+                        )
+                        canvas.drawCircle(
+                            index * noteWidth + noteHeight / 2,
+                            noteCenter.y - note * noteHeight - noteHeight / 2,
+                            noteHeight / 2,
+                            dotPaint
+                        )
+                    }
+                    index == notes.lastIndex || notes[index + 1] != _note -> {
+                        canvas.drawRect(
+                            index * noteWidth,
+                            noteCenter.y - note * noteHeight,
+                            (index + 1) * noteWidth - noteHeight / 2,
+                            noteCenter.y - (note + 1) * noteHeight,
+                            notePaint
+                        )
+                        canvas.drawCircle(
+                            (index + 1) * noteWidth - noteHeight / 2,
+                            noteCenter.y - note * noteHeight - noteHeight / 2,
+                            noteHeight / 2,
+                            notePaint
+                        )
+                    }
+                    else -> {
+                        canvas.drawRect(
+                            index * noteWidth,
+                            noteCenter.y - note * noteHeight,
+                            (index + 1) * noteWidth,
+                            noteCenter.y - (note + 1) * noteHeight,
+                            notePaint
+                        )
+                    }
+                }
             }
 
             // 波形の描画
@@ -213,18 +269,18 @@ class ScoreView : FrameLayout {
                     waveCenter.y + level * noteHeight,
                     wavePaint
                 )
-            }
+                canvas.drawCircle(
+                    index * (noteWidth / hummingOption.previewWaveSampleRate) + noteWidth / 4,
+                    waveCenter.y - level * noteHeight,
+                    noteWidth / 4,
+                    wavePaint
+                )
 
-            // キーボード
-            (25..60).forEach { _i ->
-                keyboardPaint.color = if (keyboardColor[(_i - 3) % 12]) Color.parseColor("#444444") else Color.parseColor("#EEEEEE")
-                val i = _i - 36
-                canvas.drawRect(
-                    0f,
-                    noteCenter.y - i * noteHeight,
-                    100f,
-                    noteCenter.y - (i + 1) * noteHeight,
-                    keyboardPaint
+                canvas.drawCircle(
+                    index * (noteWidth / hummingOption.previewWaveSampleRate) + noteWidth / 4,
+                    waveCenter.y + level * noteHeight,
+                    noteWidth / 4,
+                    wavePaint
                 )
             }
 
@@ -241,4 +297,41 @@ class ScoreView : FrameLayout {
         fun Float.toDp() = this / context.resources.displayMetrics.density
 
     }
+
+    class KeyboardView : View {
+        constructor(context: Context) : super(context)
+        constructor(context: Context, attrs: AttributeSet) : super(context, attrs)
+        constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int) : super(context, attrs, defStyleAttr)
+        constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int, defStyleRes: Int) : super(
+            context,
+            attrs,
+            defStyleAttr,
+            defStyleRes
+        )
+
+        private val keyboardColor =
+            arrayOf(false, true, false, true, false, false, true, false, true, false, true, false)
+
+        private val noteHeight = 20f
+        private val noteCenter = PointF(0f, 500f)
+
+        private val keyboardPaint = Paint()
+
+        override fun onDraw(canvas: Canvas) {
+            // キーボード
+            (25..60).forEach { _i ->
+                keyboardPaint.color =
+                    if (keyboardColor[(_i - 3) % 12]) Color.parseColor("#444444") else Color.parseColor("#EEEEEE")
+                val i = _i - 36
+                canvas.drawRect(
+                    0f,
+                    noteCenter.y - i * noteHeight,
+                    100f,
+                    noteCenter.y - (i + 1) * noteHeight,
+                    keyboardPaint
+                )
+            }
+        }
+    }
+
 }

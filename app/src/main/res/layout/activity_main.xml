@@ -54,6 +54,8 @@
             android:id="@+id/tempo_text_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="8dp"
             android:ems="10"
             android:text="120 BPM"
             android:textAlignment="center"
@@ -62,9 +64,10 @@
         <Button
             android:id="@+id/tempo_button"
             style="@style/Widget.AppCompat.Button.Colored"
-            android:layout_width="match_parent"
-            android:layout_height="141dp"
+            android:layout_width="140dp"
+            android:layout_height="140dp"
             android:backgroundTint="@color/colorPrimary"
+            android:textColor="@android:color/white"
             android:text="タップ！"
             android:textAppearance="@style/TextAppearance.AppCompat.Widget.Button" />
 
@@ -122,7 +125,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="88dp"
         android:layout_marginTop="20dp"
-        android:text="音程"
+        android:text=""
         app:layout_constraintStart_toEndOf="@+id/button_play"
         app:layout_constraintTop_toTopOf="@+id/button_record" />
 

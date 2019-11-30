@@ -25,7 +25,7 @@ class ListActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_list)
-        title = "Humming一覧"
+        title = "Humming リスト"
         adapter = Adapter(this, R.layout.item_list, arrayListOf())
         updateFileListWithPermissionCheck()
         humming_list_view.adapter = adapter
@@ -59,6 +59,7 @@ class ListActivity : AppCompatActivity() {
         adapter.items.clear()
         adapter.items.addAll(files)
         adapter.notifyDataSetChanged()
+        empty_text_view.visibility = if (adapter.items.isEmpty()) View.VISIBLE else View.GONE
     }
 
     override fun onResume() {
